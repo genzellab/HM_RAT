@@ -1,5 +1,5 @@
 
 # Video stitching :video_camera:
 
-- joint_views.py
-- stitching.py
+- join_views.py
+- stitch.py
