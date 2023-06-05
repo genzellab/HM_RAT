@@ -7,3 +7,5 @@ The following scripts stitch the 12 hexmaze eyes into a single video.
 - join_views.py  (For linux)
 
 Instructions for installing in Windows:
+
+- Hexmaze stitcher installation.docx
