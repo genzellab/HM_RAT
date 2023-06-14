@@ -4,11 +4,14 @@
 For the LED ICA extraction there are some older versions from which the newest script was based on. 
 The newest script is the Extract_LEDs_28_01_2023.ipynb.
 
+# Video_LED_Sync_using_ICA.ipynb
+Latest version with end to end pipeline for sync, verified on multiple study days and compiled from previous versions.
+
 # - Extract_LEDs (1).ipynb: 
 Oldest version, has missing YUV and HSV methods.
 
 # - Extract_LEDs_28_01_2023.ipynb:
-Newest version. This is the file that should be worked on.
+Older version. This is the file that should be worked on.
 
 
 # - Extract_LEDs_0519.ipynb:
