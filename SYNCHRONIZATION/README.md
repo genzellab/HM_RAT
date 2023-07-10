@@ -2,11 +2,20 @@
 [Description](https://docs.google.com/document/d/1C5po2i44sqhHxwp52voB_3vZT7CsPBjcpynkymEkAQY/edit)
 
 For the LED ICA extraction there are some older versions from which the newest script was based on. 
+
+
 The newest script is the Video_LED_Sync_using_ICA.py 
+
+
 The notebook version for step by step debugging is Video_LED_Sync_using_ICA.ipynb
 
 # - Video_LED_Sync_using_ICA.py and Video_LED_Sync_using_ICA.ipynb
 Latest version of script and notebook
+
+
+Command to run the script from terminal:
+
+
 python Video_LED_Sync_using_ICA.py -i '/home/genzel/param/sync_inp_files' -o '/home/genzel/param/outpath/'
 
 # - Extract_LEDs_28_01_2023.ipynb:

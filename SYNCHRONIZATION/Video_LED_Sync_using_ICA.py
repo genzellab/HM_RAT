@@ -43,16 +43,70 @@ import sys
         c. Rat4_20201109_maze_merged.dio_MCU_Din2.dat for red DIO
 '''
 
+# Auto LED detection code based on background subtraction and threhold
+def get_led_coords_from_videoframes(file_path,process_frame_count):
+    cap = cv2.VideoCapture(str(file_path))
+    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    frames_to_process = process_frame_count if process_frame_count is not None else frame_count
+              
+    rgb_frames = np.empty((frames_to_process,16,16,3))
+    ret, ref_frame = cap.read()
+    acc_frames = []
+#     while(cap.isOpened()):
+    for i in range(frames_to_process):
+        ret, frame = cap.read()
+        if frame is None:
+            break
+#         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+	# Negative values are ignored on image subtraction, so using unsigned subtraction.
+        subtracted = cv2.subtract(frame,ref_frame)
+        subtracted += cv2.subtract(ref_frame,frame)
+        # Ignoring the top 100 pixels in image due to noise from the timestamp prints
+        # Lower threhold 50 chosen based on trial and error on 1 study day and tested with other study day
+        th = cv2.threshold(subtracted[100:,:],50,255,cv2.THRESH_BINARY)[1]
+        acc_frames.append(th)
+#         ref_frame = frame
+        # Mask the result with the original image
+#         masked = cv2.bitwise_and(frame, frame, mask = th)
+        #cv2.imshow('ImageWindow', th)
+        #cv2.waitKey(1)
+#     print(rgb_frames)
+
+    #cv2.destroyAllWindows()
+    #cv2.waitKey(1)
+    cap.release()
+    
+    avg_frame = np.max(acc_frames, axis=0).astype("uint8")
+#     print(avg_frame.shape)
+    #plt.figure()
+    #plt.imshow(avg_frame)
+    #plt.title('my picture')
+#     plt.show()
+    avg_frame = cv2.cvtColor(avg_frame, cv2.COLOR_RGB2GRAY)
+    avg_th = cv2.threshold(avg_frame,0,255,cv2.THRESH_BINARY)[1]
+    contours = cv2.findContours(avg_th, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+    # Contour area identified based on approx size of LEDs. If there is incorrect detection, the signals will be rejected in ICA
+    largest_contour_index = np.argmax([cv2.contourArea(c) for c in contours if cv2.contourArea(c) < 100])
+    x,y,w,h = cv2.boundingRect(contours[largest_contour_index])
+    cv2.rectangle(ref_frame, (x, y+100), (x + w, y + 100 + h), (0, 255,0), 2)
+#     cv2.drawContours(ref_frame, contours, -1, (255,255,255), 3)
+    #plt.figure()
+    #plt.imshow(ref_frame)
+    #plt.title('ref draw')
+    #plt.show()
+    return (int(x+(w/2)),int(y+100+(h/2)))
+
+
 
 # Reads all the mp4 files in the folder, checks for a led_crop_coordinates file and meta file
-def get_video_files_with_metadata(basepath,led_xy=True,time_stamp=True, info=True):
+def get_video_files_with_metadata(basepath,led_xy_manual=True,time_stamp=True, info=True):
     path = Path(basepath).resolve()
     videos_filepath_list = list(sorted(path.glob('*eye*.mp4')))
 #     print(videos_filepath_list)
     
     crop_xy_dict = {}
     # Verify if led_coordinates supplied
-    if led_xy:
+    if led_xy_manual:
         crop_file_list = list(sorted(path.glob('*.led_crop')))
 #         print(crop_file_list)
         if crop_file_list:
@@ -69,6 +123,13 @@ def get_video_files_with_metadata(basepath,led_xy=True,time_stamp=True, info=Tru
                     break
         else:
             raise Exception("File containing led crop coordinates not found.")
+    else:
+        # Total frames to use for extracting LED coordinates
+        n_frame = 100
+        for video_file_path in videos_filepath_list:
+            crop_xy_dict[str(video_file_path)] = get_led_coords_from_videoframes(video_file_path,n_frame)
+            
+    
     if time_stamp:
         # csv files no longer required since ts data extracted from meta files
 #         tsdata_filepath_list = list(sorted(path.glob('*.csv')))
@@ -690,7 +751,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='OpenCV video processing')
     
     help_text = "Input folder contains the following : 1. Eye video files: .mp4 formats (12 files, for each eye) \n \
- 2. X,y co-ordinates of crops for LED positions : .led_crop format (1 file containing 12 xy co-ordinates) \n \
+ 2. If LED locations to be extracted manually, X,y co-ordinates of crops for LED positions : .led_crop format (1 file containing 12 xy co-ordinates) \n \
  3. Time stamp files containing framewise clock timestamps after linear regression: .csv format (12 files) \n \
     Note: TODO: Add the logic of meta to .csv conversion using Linear regression in this script. \n \
  4. Time stamps recorded from LED controller referred to as DIO: .dat format (3 files for red,blue and \
@@ -709,8 +770,9 @@ if __name__ == "__main__":
 
     # Main routine
 
-	# Get file list paths and the metadata paths related to it : dio timestamps, xy co-ords, ???
-    vfl,xy_dict,meta_file_list,dio_file_path_dict = get_video_files_with_metadata(args.input_path)
+    # Get file list paths and the metadata paths related to it : dio timestamps, xy co-ords, ???
+    # Toggle "led_xy_manual" flag parameter to extract LED xy co-ordinates automatically/manually
+    vfl,xy_dict,meta_file_list,dio_file_path_dict = get_video_files_with_metadata(args.input_path,led_xy_manual=False)
 
 
     # Verify from user for input options
@@ -787,7 +849,7 @@ if __name__ == "__main__":
                                                                 blue_ica_corrected_s.to_numpy(),
                                                                 red_ica_corrected_s.to_numpy(),
                                                                 avg_ts_per_frame,
-                                                                vis_on=True)
+                                                                vis_on=False)
         # print("Predicted DIO from regressor:",pred_dio_blue)
         # print(dio_train_red[train_set_size:], pred_dio_red)
         diff = pred_dio_blue - blue_ica_corrected_s.to_numpy()
