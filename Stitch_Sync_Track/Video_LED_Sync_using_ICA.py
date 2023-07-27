@@ -137,10 +137,10 @@ def get_video_files_with_metadata(basepath,led_xy_manual=True,time_stamp=True, i
         
     #TODO: Verify for single file path in the list to avoid conflicting data
     dio_file_path_dict={}
-    dio_file_path_dict['init'] = list(sorted(path.glob('*maze.*.dat')))
+    dio_file_path_dict['init'] = list(sorted(path.rglob('*[0-9].dio_Controller_Din1.dat')))
     
-    dio_file_path_dict['blue'] = list(sorted(path.glob('*maze_merged*Din1.dat')))
-    dio_file_path_dict['red'] = list(sorted(path.glob('*maze_merged*Din2.dat')))
+    dio_file_path_dict['blue'] = list(sorted(path.rglob('*merged.dio_Controller_Din1.dat')))
+    dio_file_path_dict['red'] = list(sorted(path.rglob('*merged.dio_Controller_Din2.dat')))
 
     if info:
         
@@ -300,10 +300,14 @@ def process_video_with_metadata(file_path,xy_coord,meta_filepath,process_frame_c
     # Correcting the timestamps from meta file using linear regression
     corr_cpu_ts = pred_cpu_ts_from_gpu_ts(ts_data['callback_gpu_ts'], ts_data['callback_clock_ts'])
     df = pd.DataFrame()
+    #print("----------------------------------------------------------")
+    #print(corr_cpu_ts[0])
     df['extracted_seconds_timestamp'] = pd.to_datetime(corr_cpu_ts,unit='s',utc=True)
+    #print(df['extracted_seconds_timestamp'][0],df['extracted_seconds_timestamp'][0].tzinfo)
     df['extracted_seconds_timestamp'] = df['extracted_seconds_timestamp'].dt.tz_convert('CET').dt.tz_localize(
         None)
-
+    #print(df['extracted_seconds_timestamp'][0],df['extracted_seconds_timestamp'][0].tzinfo)
+    #print("----------------------------------------------------------")
     # extract time stamps from the csv files based on sync_edited: as they are corrected timestamps
     # Not using this since meta files can be used instead of csv and csv vs meta values didnt match 
     # with linear regression
@@ -513,30 +517,33 @@ def parseFields(fieldstr):
     return np.dtype(typearr)
 
 
-def extract_dio_com(dio_file_path_dict):
+def extract_dio_com(dio_file_path_dict,sampling_freq):
     sys_time_dict = readTrodesExtractedDataFile(dio_file_path_dict['init'][0])
     sys_time = int(sys_time_dict['system_time_at_creation'])/1000
+    #print("----------------------------------------------------------")
+    #print(sys_time)
     timestamp_at_creation = int(sys_time_dict['timestamp_at_creation'])#/1000
-    sys_time_dt = datetime.utcfromtimestamp(sys_time)#pd.to_datetime(sys_time, unit='s',utc=True)#
-#     print(pd.to_datetime(sys_time, unit='s'),sys_time_dt,datetime.utcfromtimestamp(timestamp_at_creation/1000))
+    sys_time_dt = pd.to_datetime(sys_time, unit='s',utc=False)#datetime.utcfromtimestamp(sys_time)#
+    
+    #print(pd.to_datetime(sys_time, unit='s'),sys_time_dt,datetime.utcfromtimestamp(timestamp_at_creation/1000))
     # print(sys_time,sys_time_dt)
     red_dict_dio = readTrodesExtractedDataFile(dio_file_path_dict['red'][0])
     red_DIO = red_dict_dio['data']
-    
-    red_DIO_ts = [((sys_time_dt + timedelta(seconds = (i[0]-timestamp_at_creation)/ 30000)).timestamp(),
+    #print(sys_time_dt,sys_time_dt.tzinfo,timestamp_at_creation,red_DIO[0])
+    red_DIO_ts = [((sys_time_dt + timedelta(seconds = (i[0]-timestamp_at_creation)/ sampling_freq)).timestamp(),
                    i[1]) for i in red_DIO]
-#     print(red_DIO)
-    red_DIO_df  = pd.DataFrame({"Time_Stamp_(DIO)" : [datetime.fromtimestamp(i[0]) for i in red_DIO_ts], 
+    #print(red_DIO,red_DIO_ts)
+    red_DIO_df  = pd.DataFrame({"Time_Stamp_(DIO)" : [datetime.utcfromtimestamp(i[0]) for i in red_DIO_ts], 
                                 "Time_in_seconds_(DIO)" : [str(i[0]) for i in red_DIO_ts], 
                                 "State": [i[1] for i in red_DIO_ts]} )
-#     print(red_DIO_ts)
-#     print(red_DIO_df)
+    #print(red_DIO_ts)
+    #print(red_DIO_df)
     
     blue_dict_dio = readTrodesExtractedDataFile(dio_file_path_dict['blue'][0])
     blue_DIO = blue_dict_dio['data']
-    blue_DIO_ts = [((sys_time_dt + timedelta(seconds = (i[0]-timestamp_at_creation)/ 30000)).timestamp() , 
+    blue_DIO_ts = [((sys_time_dt + timedelta(seconds = (i[0]-timestamp_at_creation)/ sampling_freq)).timestamp() , 
                     i[1]) for i in blue_DIO]
-    blue_DIO_df  = pd.DataFrame({"Time_Stamp_(DIO)" : [datetime.fromtimestamp(i[0]) for i in blue_DIO_ts], 
+    blue_DIO_df  = pd.DataFrame({"Time_Stamp_(DIO)" : [datetime.utcfromtimestamp(i[0]) for i in blue_DIO_ts], 
                                  "Time_in_seconds_(DIO)" : [str(i[0]) for i in blue_DIO_ts], 
                                  "State": [i[1] for i in blue_DIO_ts]} )
     
@@ -755,17 +762,19 @@ if __name__ == "__main__":
  3. Time stamp files containing framewise CPU-GPU clock timestamps: .meta format (12 files) \n \
  4. Time stamps recorded from LED controller referred to as DIO: .dat format (3 files for red,blue and \
  initial systime) \n \
-     a. Rat4_20201109_maze.dio_MCU_Din1.dat for initial time stamp \n \
-     b. Rat4_20201109_maze_merged.dio_MCU_Din1.dat for blue DIO \n \
-     c. Rat4_20201109_maze_merged.dio_MCU_Din2.dat for red DIO \n \
+     a. Rat4_20201109_maze.dio_Controller_Din1.dat for initial time stamp \n \
+     b. Rat4_20201109_maze_merged.dio_Controller_Din1.dat for blue DIO \n \
+     c. Rat4_20201109_maze_merged.dio_Controller_Din2.dat for red DIO \n \
     Example: python Video_LED_Sync_using_ICA.py -i '/home/genzel/param/sync_inp_files' -o '/home/genzel/param/outpath/' "
     
     parser.add_argument('-i', "--input", dest='input_path', help=help_text)
     parser.add_argument('-o', "--output", dest='output_path', help='full path for generating framewise timestamps synchronised with DIO time')
+    parser.add_argument('-f', "--samp_freq", dest='sampling_freq', help='Sampling freq for Spike Gadget DIO recordings')
     args = parser.parse_args()
     if args.input_path is None:  # or args.output is None
         sys.exit("Please provide path to input and output video files! See --help")
     print('Input path: ', args.input_path, 'Output log path: ', args.output_path)
+    print('Sampling freq: ', int(args.sampling_freq))
 
     # Main routine
 
@@ -792,6 +801,7 @@ if __name__ == "__main__":
             
             red_ica_out,blue_ica_out = process_video_with_metadata(video_file_path,xy_dict[str(video_file_path)],
                                                             meta_file_list[itr],process_frame_count)
+            
             if (red_ica_out is not None) and (blue_ica_out is not None): 
                 red_ica_list.append(red_ica_out)
                 blue_ica_list.append(blue_ica_out)
@@ -823,7 +833,7 @@ if __name__ == "__main__":
         # extract dio signal, time stamps, 
         # process the dio signals and timestamps, and 
         # get centre of mass for dio signals
-        dio_com_red, dio_com_blue = extract_dio_com(dio_file_path_dict)
+        dio_com_red, dio_com_blue = extract_dio_com(dio_file_path_dict,int(args.sampling_freq))
 
         visualise_ica_dio_coms(dio_com_red,ica_com_red,dio_com_blue,ica_com_blue)
 
@@ -857,7 +867,7 @@ if __name__ == "__main__":
 
        # Save the corrected average framewise ts to csv file
         pred_ts_df = pd.DataFrame(pred_framewise_ts,columns=['Corrected Time Stamp'])
-        pred_ts_df.to_csv(args.output_path + "stitched_framewise_ts.csv",index_label='Frame Number')
+        pred_ts_df.to_csv(args.output_path + "/stitched_framewise_ts.csv",index_label='Frame Number')
         # blue_ica_corrected_s.to_csv(args.output_path + "blue_corrected_ts.csv")
 
         # To visualise the gpu and cpu timestamps difference
