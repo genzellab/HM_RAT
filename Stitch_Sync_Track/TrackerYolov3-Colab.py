@@ -95,7 +95,7 @@ class Tracker:
         self.logger.info(f'Use pd.to_datetime(sys_time, unit="s",utc=True) or datetime.utcfromtimestamp(sys_time) to convert UTC timestamp to datetime format.')
         print('\nCreating log files...')
         
-        self.sync_ts_dict = pd.read_csv(str(out) + 'stitched_framewise_ts.csv', index_col=0).to_dict()
+        self.sync_ts_dict = pd.read_csv(str(out) + '/stitched_framewise_ts.csv', index_col=0).to_dict()
         self.run_vid()
 
     def load_network(self, n):

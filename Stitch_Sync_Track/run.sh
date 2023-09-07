@@ -2,7 +2,8 @@
 # Set the -e option
 set -e
 # First step extracts the DIO files from the ephys .rec files using Trodes v2.3.2 for Ubuntu 20.04
-for i in `find . -wholename "$1/*.rec" -type f`; do
+for i in `find . -wholename $1"*.rec" -type f`; do
+    echo "Trodes Utility is processing the file: "$i
     ./Trodes_2-3-2_Ubuntu2004/trodesexport -dio -rec $i
 done
 
@@ -10,7 +11,7 @@ done
 python Video_LED_Sync_using_ICA.py -i $1 -o $2 -f 20000
 
 # Comment the next line using "#" at the start to skip Stitching
-python join_views.py ./input_files/
+python join_views.py $1
 
 # Comment the next line using "#" at the start to skip Tracking
-python TrackerYolov3-Colab.py -i $1'/stitched.mp4' -o '$2'
+python TrackerYolov3-Colab.py -i $1'/stitched.mp4' -o $2
