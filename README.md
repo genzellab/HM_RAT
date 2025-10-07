@@ -8,10 +8,10 @@ It was developed within the **Genzel Lab**, to process and analyze LFP and spike
 
 ## 👥 Credits & Supervision
 
-This repository was developed under the **main supervision of Dr. Adrián Alemán Zapata**, who designed the data analysis framework, integrated the preprocessing and synchronization pipelines, and organized the repository.
+This repository was developed under the **main supervision of [Dr. Adrián Alemán Zapata](https://github.com/Aleman-Z)**, who designed the data analysis framework, integrated the preprocessing and synchronization pipelines, and organized the repository.
 
 **Contributors:**
-- **Dr. Adrián Alemán Zapata** — main supervision, data integration, and repository organization  
+- **[Dr. Adrián Alemán Zapata](https://github.com/Aleman-Z)** — main supervision, data integration, and repository organization  
 - **Emanuele Ciardo** — LFP preprocessing and event detection pipeline  
 - **Sara Rostami** — event characteristics analysis and visualization  
 - **Param Rajpura** — updated the tracker to use GPU acceleration and improved ephys–tracker synchronization  
@@ -109,4 +109,4 @@ HM_RAT/
 
 ## 🧾 License  
 © **Genzel Lab** — for research use only.  
-Please cite relevant publications and acknowledge **Dr. Adrián Alemán Zapata** for primary supervision when using this repository.
+Please cite relevant publications and acknowledge **[Dr. Adrián Alemán Zapata](https://github.com/Aleman-Z)** for primary supervision when using this repository.
