@@ -1,70 +1,112 @@
-Dependencies: To-add. 
+# 🧠 HM_RAT — Hexmaze Rat Project  
+Repository for the **Hexmaze Rat** electrophysiology and behavioral data analysis pipeline.
 
-# Convertion from .rec to .mda
-```
+This repository contains scripts and utilities for synchronizing electrophysiological recordings with behavior, spike sorting, downsampling, event detection, and event characterization.  
+It was developed within the **Genzel Lab**, to process and analyze LFP and spike data recorded from rats navigating the Hexmaze.
+
+---
+
+## 👥 Credits & Supervision
+
+This repository was developed under the **main supervision of Dr. Adrián Alemán Zapata**, who designed the data analysis framework, integrated the preprocessing and synchronization pipelines, and organized the repository.
+
+**Contributors:**
+- **Dr. Adrián Alemán Zapata** — main supervision, data integration, and repository organization  
+- **Emanuele Ciardo** — LFP preprocessing and event detection pipeline  
+- **Sara Rostami** — event characteristics analysis and visualization  
+- **Param Rajpura** — updated the tracker to use GPU acceleration and improved ephys–tracker synchronization  
+- **Daniela Morales** — assisted with GPU acceleration and computational optimization  
+- **Kayvan Combadiere** — contributed to the spike sorting pipeline structure and implementation  
+- **Anna Gondret** — tested and validated the spike sorting pipeline on extended datasets  
+- Additional contributions from members of the **Genzel Lab**
+
+---
+
+## ⚙️ Dependencies  
+*(To be added — e.g., Python, MATLAB, Mountainsort, Trodes, etc.)*
+
+---
+
+## 🔄 Conversion from `.rec` to `.mda`
+
+Use `trodesexport` to convert `.rec` recordings into `.mda` format compatible with the Mountainsort spike sorting pipeline:
+
+```bash
 ./trodesexport -mountainsort -rec /mnt/genzel/Rat/HM/Rat_HM_Ephys/Rat_HM_Ephys_Rat5_406576/Rat_HM_Ephys_Rat5_406576_20210614/Rat_Hm_Ephys_Rat5_406576_20210614_presleep/Rat_Hm_Ephys_Rat5_406576_20210614_presleep.rec -sortingmode 1
 ./trodesexport -mountainsort -rec
 ```
 
-# DownsamplingMDAfile
-DownsamplingMDAfile
-## Installation 
+---
 
+## 🧩 Downsampling `.mda` Files
 
-# Hexmaze Rat scripts
-Repository for Hexmaze Rat project. 
+The script `DownsamplingMDAfile` performs temporal downsampling of `.mda` electrophysiology files for efficient analysis.
 
-## Main scripts: :file_folder: 
-```
-pip install numpy
-pip install pandas
-pip install scipy
+### Installation (Python packages)
+```bash
+pip install numpy pandas scipy
 ```
 
-## LFP analysis (Emanuele Ciardo)
-_**Data preprocessing:**_ 
-You need to add the file mdaio to the python path
+---
 
-  * main.m : The script receives as an input an .mda file - which has already been downsampled - that the user can select once the pop-up is opened. The main action it perform are:
--select the NREM portion of the recording. This is done by loading a second file where the sleepscoring file “states” is stored
+## 📊 LFP Analysis — *Emanuele Ciardo*
 
-_**IC selection:**_ 
+### Data Preprocessing  
+Add the `mdaio` library to the Python path before running scripts.
 
-  *main_ica : The script receives as input the output of the script ‘main’. It has the purpose to assess which independent components are to be removed. Since this approach has been ruled out, this script should be greatly modified. Another purpose of this script is to select the channels of interest (1 for PFC, 1 for HPC)
+- **`main.m`** — Takes a downsampled `.mda` file as input, loads the corresponding sleep scoring file (“states”), and selects NREM portions for event analysis.
 
-_**Event detection:**_ 
+### Independent Component Selection  
+- **`main_ica.m`** — Receives output from `main.m` and identifies independent components to be removed.  
+  Also allows manual selection of cortical (PFC) and hippocampal (HPC) channels.
 
-  * main_event : The script receives as input the output of the script ‘main_ica’. It performs 2 actions:
+### Event Detection  
+- **`main_event.m`** — Detects neural events (ripples, spindles, delta waves) after removing movement artifacts.  
+  - Removes artifacts via amplitude- and derivative-based thresholds.  
+  - Segments data into NREM bouts.  
+  - Supports interactive threshold tuning and visual inspection.
 
--removes artefacts.  It is done in 2 ways: 1) for normal movement artefacts it relies on an amplitude-based threshold; 2) for the resetting artefact it relies on a slightly finer algorithm, which takes into account the second derivative of the signal and the distance between detected artefacts, thus exploting the periodic nature of the artefact
+### Event Analysis  
+- **`main_analysis.m`** — Performs event counting, co-occurrence analysis, and basic sequence analysis.
 
--parces the signal into NREM bouts. This step is required for the subsequent event detection
+---
 
--event detection. The user can choose what to detect: ripples, spindles, delta or all of them. The user can then, while examining the plotted detections, decide to modify the thresholds for the detection.
+## 🧠 Event Characteristics — *Sara Rostami*
 
+### Data Pooling  
+Combines preprocessed data across study days and rats for feature extraction.
 
+- **`pooling_data.m`** — Merges data from multiple rats (e.g., Rat 1, 2, 4, 7, 8) into `.mat` files for *pre/post-condition* analyses (e.g., `postsleep_homecage.mat`).
 
+### Feature Extraction and Modeling  
+- **`making_event_characteristics_file.m`** — Converts extracted event features to `.csv` format.  
+- **`violin_plots_ripple_events.ipynb`** — Generates violin plots for ripple event feature visualization.  
+- **`model&test.ipynb`** — Exploratory and predictive analysis using models (Decision Tree, Random Forest, SGBDT, KNN).  
+- **`event_characteristics_plots.ipynb`** — Visualizes and compares event features across sleep sessions post-learning.
 
-**Data analysis:**_ 
+📄 Reports and plots:
+- [Event Report 1](https://docs.google.com/document/d/1gvLbRoj9SJaflvzC6W12gw_GmWY8hxWR6e2fygoqZa0/edit#)  
+- [Event Report 2](https://docs.google.com/document/d/1oe6Gip6X3RxoDDiwbFWX5XeOop_DhHowTUK5JEEMFok/edit#heading=h.2gazcsgmxkub)
 
-  * main_analysis: performs basic analysis: counting of the events and detection of sequences and cooccurrences of events
+---
 
-## Event Characteristics: Sara Rostami
+## 📂 Repository Structure
+```
+HM_RAT/
+│
+├── LFP_event_detection/           # Event detection scripts (ripples, spindles, delta)
+├── SYNCHRONIZATION/               # Trodes and tracker synchronization utilities
+├── Spikesorting_and_preprocessing/# Spike sorting and preprocessing (Mountainsort)
+├── Stitch_Sync_Track/             # Behavioral tracking and stitching
+├── TRACKER/                       # GPU-accelerated tracking utilities
+├── downsampling/                  # Signal downsampling scripts
+├── event_characteristics/         # Feature extraction and modeling
+├── video_stitching/               # Video alignment and reconstruction
+└── README.md
+```
 
-_**Data pooling:**_ 
-data from different study days for different rats are pooled in order to run the event_charachteristics script on it & extract the features from our raw data.
+---
 
-  * _pooling_data.m_ : The script receives the preprocessed data of rat 1, 2, 4, 7 and 8 for different study days and pools them in 6 files in *pre/post_condition.mat* format (`example: postsleep_homecage.mat`).
-
-
-_**Event Characteristics Analysis:**_ 
-by running the event_charachteristics script on the raw data, the features were extracted and saved in `X.mat`.
-
-  * _making_event_characteristics_file.m_ : The script receives the feature extracted data of events (ripple,spindle and delta) and outputs the feature extracted data in _.csv_ format.
-  * _violin_plots_ripple_events.ipynb_ : This notebook contains the violin plots of ripple events.
-  * _model&test.ipynb_ : Exploratory/Predictive analysis of feature extracted ripple events, using correlation matrix, pairwise scatter plot and models like Decision Tree, Random Forest, SGBDT, and KNN.
-  * _event_charachteristics_plots_ : This notebook contains a number of plots for the feature extracted events to compare and visualize the features in the 4 hour sleeping session after learning a new goal location.
-
-these two documents contain the reports and plots of the above scripts:
-* https://docs.google.com/document/d/1gvLbRoj9SJaflvzC6W12gw_GmWY8hxWR6e2fygoqZa0/edit#
-* https://docs.google.com/document/d/1oe6Gip6X3RxoDDiwbFWX5XeOop_DhHowTUK5JEEMFok/edit#heading=h.2gazcsgmxkub
+## 🧾 License  
+© **Genzel Lab** — for research use only.  
+Please cite relevant publications and acknowledge **Dr. Adrián Alemán Zapata** for primary supervision when using this repository.
