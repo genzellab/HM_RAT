@@ -22,8 +22,56 @@ This repository was developed under the **main supervision of [Dr. Adrián Alem�
 
 ---
 
+## 🎥 Behavioral Tracking, Synchronization & Stitching
+
+A key part of the Hexmaze Rat project involves **tracking animal behavior** across 12 synchronized camera views and aligning these behavioral datasets with **electrophysiological recordings (LFPs and spikes)**.
+
+### 🧩 Stitching, Synchronization, and Tracking Pipeline
+Folder: [`Stitch_Sync_Track/`](./Stitch_Sync_Track)
+
+This integrated pipeline allows the user to:
+- **Synchronize** electrophysiology (Trodes) and video data.
+- **Stitch** multiple camera feeds into a single continuous video using FFMPEG.
+- **Track** animal movement automatically with GPU acceleration (YOLOv3-based tracker).  
+
+It combines three core modules:
+- **Video stitching** (`video_stitching/`) — merges the 12 camera “Hexmaze eyes” into one video.
+- **Tracker** (`TRACKER/`) — GPU-accelerated YOLOv3 tracking pipeline, compatible with both Windows and Colab environments.
+- **Synchronization** — aligns electrophysiology timestamps with tracker outputs, generating synchronized position–event datasets.
+
+The pipeline can be executed as a single automated workflow using the shell script `run.sh`.  
+A detailed [installation and usage manual](https://www.dropbox.com/scl/fi/j59wadyvigqzyv650okf3/Installation-and-Usage-Manual-for-HM-Stitch-Sync-Track.docx?rlkey=q5o6ppiv1xcbkq1w2v8oodvr18dl=0) is available.
+
+---
+
+### 🎬 Video Stitching
+Folder: [`video_stitching/`](./video_stitching)
+
+Scripts to merge the 12 Hexmaze camera views into one video using **FFMPEG**.
+
+- **`stitch.py`** — main stitching script for Windows.  
+- **`join_views.py`** — Linux version (supports GPU acceleration).  
+- **`Stitched_overlay.py`** — improves visual continuity and reduces abrupt cropping.  
+- Installation instructions available in *Hexmaze stitcher installation.docx*.
+
+---
+
+### 🧭 Tracker (GPU-Accelerated)
+Folder: [`TRACKER/`](./TRACKER)
+
+Implements YOLOv3-based tracking of the rat’s position using GPU acceleration.  
+Compatible with CUDA and cuDNN, with configurations for both Colab and local systems.
+
+- **`TRACKER_GPU.py`** / **`TRACKER GPU.ipynb`** — main tracking scripts.  
+- **`Tracker_Colab_2_0.ipynb`** — Colab-optimized version for large-batch tracking.  
+- Supports ONNX runtime GPU (tested with CUDA 11.6 and cuDNN 8.5.0.96).  
+
+GPU optimization credits: *Param Rajpura* and *Daniela Morales.*
+
+---
+
 ## ⚙️ Dependencies  
-*(To be added — e.g., Python, MATLAB, Mountainsort, Trodes, etc.)*
+*(To be added — e.g., Python, MATLAB, Mountainsort, Trodes, FFMPEG, YOLOv3)*
 
 ---
 
@@ -38,51 +86,13 @@ Use `trodesexport` to convert `.rec` recordings into `.mda` format compatible wi
 
 ---
 
-## 🧩 Downsampling `.mda` Files
+## 🧠 LFP and Event Analyses
 
-The script `DownsamplingMDAfile` performs temporal downsampling of `.mda` electrophysiology files for efficient analysis.
+### LFP Analysis — *Emanuele Ciardo*  
+Includes preprocessing, ICA-based artifact removal, and event detection (ripples, spindles, delta).
 
-### Installation (Python packages)
-```bash
-pip install numpy pandas scipy
-```
-
----
-
-## 📊 LFP Analysis — *Emanuele Ciardo*
-
-### Data Preprocessing  
-Add the `mdaio` library to the Python path before running scripts.
-
-- **`main.m`** — Takes a downsampled `.mda` file as input, loads the corresponding sleep scoring file (“states”), and selects NREM portions for event analysis.
-
-### Independent Component Selection  
-- **`main_ica.m`** — Receives output from `main.m` and identifies independent components to be removed.  
-  Also allows manual selection of cortical (PFC) and hippocampal (HPC) channels.
-
-### Event Detection  
-- **`main_event.m`** — Detects neural events (ripples, spindles, delta waves) after removing movement artifacts.  
-  - Removes artifacts via amplitude- and derivative-based thresholds.  
-  - Segments data into NREM bouts.  
-  - Supports interactive threshold tuning and visual inspection.
-
-### Event Analysis  
-- **`main_analysis.m`** — Performs event counting, co-occurrence analysis, and basic sequence analysis.
-
----
-
-## 🧠 Event Characteristics — *Sara Rostami*
-
-### Data Pooling  
-Combines preprocessed data across study days and rats for feature extraction.
-
-- **`pooling_data.m`** — Merges data from multiple rats (e.g., Rat 1, 2, 4, 7, 8) into `.mat` files for *pre/post-condition* analyses (e.g., `postsleep_homecage.mat`).
-
-### Feature Extraction and Modeling  
-- **`making_event_characteristics_file.m`** — Converts extracted event features to `.csv` format.  
-- **`violin_plots_ripple_events.ipynb`** — Generates violin plots for ripple event feature visualization.  
-- **`model&test.ipynb`** — Exploratory and predictive analysis using models (Decision Tree, Random Forest, SGBDT, KNN).  
-- **`event_characteristics_plots.ipynb`** — Visualizes and compares event features across sleep sessions post-learning.
+### Event Characteristics — *Sara Rostami*  
+Aggregates and compares features across study days and animals, visualizing distributions and relationships through violin plots, correlation matrices, and predictive models.
 
 📄 Reports and plots:
 - [Event Report 1](https://docs.google.com/document/d/1gvLbRoj9SJaflvzC6W12gw_GmWY8hxWR6e2fygoqZa0/edit#)  
@@ -94,14 +104,14 @@ Combines preprocessed data across study days and rats for feature extraction.
 ```
 HM_RAT/
 │
-├── LFP_event_detection/           # Event detection scripts (ripples, spindles, delta)
-├── SYNCHRONIZATION/               # Trodes and tracker synchronization utilities
-├── Spikesorting_and_preprocessing/# Spike sorting and preprocessing (Mountainsort)
-├── Stitch_Sync_Track/             # Behavioral tracking and stitching
-├── TRACKER/                       # GPU-accelerated tracking utilities
-├── downsampling/                  # Signal downsampling scripts
-├── event_characteristics/         # Feature extraction and modeling
-├── video_stitching/               # Video alignment and reconstruction
+├── LFP_event_detection/            # Event detection scripts (ripples, spindles, delta)
+├── SYNCHRONIZATION/                # Trodes and tracker synchronization utilities
+├── Spikesorting_and_preprocessing/ # Spike sorting and preprocessing (Mountainsort)
+├── Stitch_Sync_Track/              # Integrated stitching, synchronization, and tracking pipeline
+├── TRACKER/                        # GPU-accelerated tracking utilities (YOLOv3)
+├── video_stitching/                # Video merging and overlay correction
+├── downsampling/                   # Signal downsampling scripts
+├── event_characteristics/          # Feature extraction and modeling
 └── README.md
 ```
 
