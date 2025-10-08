@@ -12,6 +12,7 @@ This repository was developed under the **main supervision of [Dr. Adrián Alem�
 
 **Contributors:**
 - **[Dr. Adrián Alemán Zapata](https://github.com/Aleman-Z)** — main supervision, data integration, and repository organization  
+- **Giulia Porro** — implemented the original YOLOv3 tracker and Colab version for behavioral analysis  
 - **Emanuele Ciardo** — LFP preprocessing and event detection pipeline  
 - **Sara Rostami** — event characteristics analysis and visualization  
 - **Param Rajpura** — updated the tracker to use GPU acceleration and improved ephys–tracker synchronization  
@@ -30,13 +31,13 @@ A key part of the Hexmaze Rat project involves **tracking animal behavior** acro
 Folder: [`Stitch_Sync_Track/`](./Stitch_Sync_Track)
 
 This integrated pipeline allows the user to:
-- **Synchronize** electrophysiology (Trodes) and video data.
-- **Stitch** multiple camera feeds into a single continuous video using FFMPEG.
+- **Synchronize** electrophysiology (Trodes) and video data.  
+- **Stitch** multiple camera feeds into a single continuous video using FFMPEG.  
 - **Track** animal movement automatically with GPU acceleration (YOLOv3-based tracker).  
 
 It combines three core modules:
-- **Video stitching** (`video_stitching/`) — merges the 12 camera “Hexmaze eyes” into one video.
-- **Tracker** (`TRACKER/`) — GPU-accelerated YOLOv3 tracking pipeline, compatible with both Windows and Colab environments.
+- **Video stitching** (`video_stitching/`) — merges the 12 camera “Hexmaze eyes” into one video.  
+- **Tracker** (`TRACKER/`) — GPU-accelerated YOLOv3 tracking pipeline, compatible with both Windows and Colab environments.  
 - **Synchronization** — aligns electrophysiology timestamps with tracker outputs, generating synchronized position–event datasets.
 
 The pipeline can be executed as a single automated workflow using the shell script `run.sh`.  
@@ -66,7 +67,7 @@ Compatible with CUDA and cuDNN, with configurations for both Colab and local sys
 - **`Tracker_Colab_2_0.ipynb`** — Colab-optimized version for large-batch tracking.  
 - Supports ONNX runtime GPU (tested with CUDA 11.6 and cuDNN 8.5.0.96).  
 
-GPU optimization credits: *Param Rajpura* and *Daniela Morales.*
+GPU optimization credits: *Giulia Porro*, *Param Rajpura*, and *Daniela Morales.*
 
 ---
 
