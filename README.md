@@ -120,4 +120,3 @@ HM_RAT/
 
 ## 🧾 License  
 © **Genzel Lab** — for research use only.  
-Please cite relevant publications and acknowledge **[Dr. Adrián Alemán Zapata](https://github.com/Aleman-Z)** for primary supervision when using this repository.
