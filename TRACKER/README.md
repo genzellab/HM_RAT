@@ -140,7 +140,6 @@ This module is part of the full **HM_RAT** pipeline:
 
 ## 📜 License  
 © **Genzel Lab** — for research use only.  
-Please cite relevant publications and acknowledge **[Dr. Adrián Alemán Zapata](https://github.com/Aleman-Z)** for supervision.
 
 
 The versions used by Giulia were onnruntime-gpu-1.8.1 and the latest versions of CUDA and cuDNN.
