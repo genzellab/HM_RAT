@@ -143,7 +143,9 @@ pip install -r requirements.txt
 Developed under the supervision of **[Dr. Adrián Alemán Zapata](https://github.com/Aleman-Z)**  
 **Contributors:**
 - **Giulia Porro** — implemented the YOLOv3 tracker integration  
-- **Param Rajpura** — GPU acceleration and synchronization improvements  
+- **Param Rajpura** — GPU acceleration and synchronization improvements
+- **Olivier Peron** — contributed to the electrophysiology–video synchronization testing and LED alignment validation
+- **Özge Çekirge** — assisted in ICA-based synchronization between ephys and video data
 - **Daniela Morales** — optimized Colab and FFMPEG environments  
 - **Genzel Lab Team** — experimental data and conceptual design  
 
