@@ -43,7 +43,7 @@ It combines three core modules:
 - **Synchronization** — aligns electrophysiology timestamps with tracker outputs, generating synchronized position–event datasets.
 
 The pipeline can be executed as a single automated workflow using the shell script `run.sh`.  
-A detailed [installation and usage manual](https://www.dropbox.com/scl/fi/j59wadyvigqzyv650okf3/Installation-and-Usage-Manual-for-HM-Stitch-Sync-Track.docx?rlkey=q5o6ppiv1xcbkq1w2v8oodvr18dl=0) is available.
+A detailed [installation and usage manual](https://www.dropbox.com/scl/fi/wwph1cjct5o0m6cffelm3/Installation-and-Usage-Manual-for-HM-Stitch-Sync-Track.docx?rlkey=drsd7q3debt064n3khcz4tlji&st=nrk9zwt2&dl=0) is available.
 
 ---
 
