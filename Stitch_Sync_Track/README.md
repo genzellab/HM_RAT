@@ -152,8 +152,6 @@ Developed under the supervision of **[Dr. Adrián Alemán Zapata](https://github
 ## 🧾 License
 
 © **Genzel Lab** — for research use only.  
-Please cite relevant publications and acknowledge **[Dr. Adrián Alemán Zapata](https://github.com/Aleman-Z)** for supervision and integration.
-
 
 
 This folder is the compilation of 3 projects to enable user to execute the workflow in single step.
