@@ -12,12 +12,14 @@ This repository was developed under the **main supervision of [Dr. Adrián Alem�
 
 **Contributors:**
 - **[Dr. Adrián Alemán Zapata](https://github.com/Aleman-Z)** — main supervision, data integration, and repository organization  
-- **Giulia Porro** — implemented the original YOLOv3 tracker and Colab version for behavioral analysis  
+- **Giulia Porro** — implemented the original YOLOv3 tracker and Colab version for behavioral analysis
+- **Olivier Peron** — contributed to electrophysiology–video synchronization and testing of LED-based alignment
+- **Özge Çekirge** — assisted with ICA-based video–ephys synchronization and data validation  
+- **Param Rajpura** — updated the tracker to use GPU acceleration and improved ephys–tracker synchronization  
+- **Kayvan Combadiere** — contributed to the spike sorting pipeline structure and implementation   
 - **Emanuele Ciardo** — LFP preprocessing and event detection pipeline  
 - **Sara Rostami** — event characteristics analysis and visualization  
-- **Param Rajpura** — updated the tracker to use GPU acceleration and improved ephys–tracker synchronization  
 - **Daniela Morales** — assisted with GPU acceleration and computational optimization  
-- **Kayvan Combadiere** — contributed to the spike sorting pipeline structure and implementation  
 - **Anna Gondret** — tested and validated the spike sorting pipeline on extended datasets  
 - Additional contributions from members of the **Genzel Lab**
 
