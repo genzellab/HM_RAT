@@ -1,7 +1,9 @@
 # 🎮 Stitch_Sync_Track — Hexmaze Rat Project
 
-This folder integrates multi-camera video stitching, synchronization with electrophysiological recordings, and automated rat tracking for the **Hexmaze Rat** experiment.  
-The goal is to create a single, synchronized behavioral video that aligns precisely with the electrophysiological data, enabling combined neural–behavioral analyses.
+This folder integrates multi-camera video stitching, synchronization with electrophysiological recordings, and automated rat tracking for the Hexmaze Rat experiment.
+The goal is to produce a fully synchronized behavioral dataset — where the tracked rat trajectories and events are precisely aligned with the electrophysiological recordings — enabling joint neural–behavioral analyses.
+
+While the intermediate stitched video provides a visually combined multi-camera view, the true temporal synchronization is achieved in the tracking stage, which applies the alignment data computed during synchronization.
 
 ---
 
