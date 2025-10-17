@@ -1,4 +1,4 @@
-# 🎬 Stitch_Sync_Track — Hexmaze Rat Project
+# 🎮 Stitch_Sync_Track — Hexmaze Rat Project
 
 This folder integrates multi-camera video stitching, synchronization with electrophysiological recordings, and automated rat tracking for the **Hexmaze Rat** experiment.  
 The goal is to create a single, synchronized behavioral video that aligns precisely with the electrophysiological data, enabling combined neural–behavioral analyses.
@@ -22,90 +22,96 @@ Multi-camera videos → Stitched video → Synchronized frames via LED/ICA → T
 
 ---
 
-## 📁 File Descriptions
+## 🧬 Hex-Maze Video Processing Pipeline – Full Description
 
-| File | Function |
-|------|-----------|
-| **`join_views.py`** | Stitches 12-camera views into one panoramic video using OpenCV and FFMPEG. |
-| **`Video_LED_Sync_using_ICA.py`** | Detects LED synchronization flashes via ICA decomposition to align ephys & video timestamps. |
-| **`TrackerYolov3-Colab.py`** | Runs YOLOv3-based rat tracker (GPU-accelerated, Colab-ready). |
-| **`run.sh`** | End-to-end automation script that performs stitching → synchronization → tracking. |
-| **`requirements.txt`** | Lists dependencies: OpenCV, ONNX Runtime GPU, scikit-learn, matplotlib, pandas. |
+This pipeline converts raw multi-camera recordings of the **Hex-Maze** experiment into fully synchronized, annotated, and analyzed videos that show the rat’s position across trials, aligned precisely with the neural data.  
+It consists of three main stages: **Synchronization**, **Stitching**, and **Tracking**.
 
 ---
 
-## ⚙️ Detailed Pipeline
+### 🕹️ Step 1 — Synchronization (`Video_LED_Sync_using_ICA.py`)
 
-### 1. Video Stitching — `join_views.py`
-Combines 12 raw camera videos into one stitched panoramic video.
+Each eye camera records independently, and their clocks may drift slightly relative to the neural recording system.  
+The synchronization script aligns all video frames to the **neural clock** using the LED–DIO system.
 
-**Input:** 12 individual `.mp4` files (Hexmaze cameras)  
-**Output:** Single video file `stitched.mp4`  
+**How it works**
+1. Detects red and blue LED flashes in each eye video using **Independent Component Analysis (ICA)**.  
+2. Reads the corresponding LED control pulses from the neural system’s **DIO .dat** files.  
+3. Fits a **linear regression** between video and neural timestamps to correct offset and drift.  
+4. Produces a frame-accurate mapping between each video frame and its true neural-aligned timestamp.
 
-**Command:**
-```bash
-python join_views.py --input ./videos/raw/ --output ./videos/stitched/stitched.mp4
-```
-
-**Notes:**
-- Uses **OpenCV** and **FFMPEG** for parallelized stitching.  
-- Supports GPU acceleration when available.  
-- Output resolution and layout can be adjusted via the configuration section inside the script.
+**Output**
+- 🗂️ `stitched_framewise_ts.csv` — links each video frame index to a corrected neural-synchronized timestamp.  
+  This file represents the **true temporal alignment** between the video and electrophysiological data and is the core reference for all subsequent steps.
 
 ---
 
-### 2. LED Synchronization — `Video_LED_Sync_using_ICA.py`
-Synchronizes video frames with electrophysiology timestamps by detecting LED flashes.
+### 🎥 Step 2 — Join Views (`join_views.py`)
 
-**Input:**  
-- Stitched video (`stitched.mp4`)  
-- Corresponding ephys file (`session.rec`)
+The maze is recorded from multiple eye cameras (typically 12).  
+This script visually combines all the videos into a single grid layout for easy viewing.
 
-**Output:**  
-- `sync_timestamps.csv` — alignment table between video and electrophysiology timestamps
+**How it works**
+1. Finds all the eye videos in a folder.  
+2. Aligns frame 0 across all videos (all start together).  
+3. Ends at the shortest video’s length, ensuring matching time windows.  
+4. Optionally crops or flips the views for consistent orientation.  
+5. Creates a new video showing all camera views side-by-side.
 
-**Command:**
-```bash
-python Video_LED_Sync_using_ICA.py --video ./videos/stitched/stitched.mp4 --ephys ./ephys/session.rec
-```
+**Output**
+- 🎮️ `stitched.mp4` — a single multi-view video combining all camera angles.
 
-**How it works:**
-- Extracts video frame luminance signals.  
-- Performs **Independent Component Analysis (ICA)** to isolate LED flash signals.  
-- Matches detected LED peaks to electrophysiology timestamps.
+> ⚠️ The stitching process does **not** use timestamps; it assumes videos are already roughly aligned.  
+> Minor 1–2 frame offsets between cameras may remain but are corrected later through the synchronization file.
 
 ---
 
-### 3. Tracking — `TrackerYolov3-Colab.py`
-Tracks rat position frame-by-frame using a YOLOv3-based detection model.
+### 🐀 Step 3 — Tracker (`tracker.py`)
 
-**Input:** Stitched and synchronized video (`stitched.mp4`)  
-**Output:** Rat position and bounding box coordinates (`tracker_output.csv`)
+The tracker performs automated detection and tracking of the rat’s movements across the maze using a trained **YOLOv3 ONNX** network.  
+It also associates every detected frame with its **true neural-synchronized timestamp**.
 
-**Command:**
-```bash
-python TrackerYolov3-Colab.py -i ./videos/stitched/stitched.mp4 -o ./output/
-```
+**How it works**
+1. Loads the stitched video (`stitched.mp4`) and timestamp file (`stitched_framewise_ts.csv`).  
+2. Detects rat head, rat body, and researcher positions frame by frame.  
+3. Tracks the rat’s trajectory across maze nodes using `node_list_new.csv`.  
+4. Logs every detection and event using corrected timestamps for full alignment with neural data.  
+5. Annotates and saves the tracked video with colored paths, node labels, and trial information.
 
-**Features:**
-- GPU acceleration via **ONNX Runtime GPU**  
-- Compatible with **Google Colab** and local CUDA systems  
-- Generates detection logs and trajectory visualizations
+**Outputs**
+- 🐭 `<date>_Rat<ID>.mp4` — tracked video with path annotations.  
+- 📜 `log_<date>_Rat<ID>.log` — detailed synchronized frame-by-frame detections.  
+- 📈 *(optional)* `<date>_Rat<ID>.txt` — summary of nodes, durations, and velocities.
 
 ---
 
-### 4. Automated Workflow — `run.sh`
-Executes the full pipeline from raw videos to tracker output.
+### 🧠 Putting It All Together
 
-**Command:**
-```bash
-bash run.sh ./videos/raw ./ephys/session.rec ./output/
-```
+| Stage | Inputs | Outputs | Purpose |
+|:------|:--------|:---------|:---------|
+| **1. Synchronization** | Eye videos + DIO signals | `stitched_framewise_ts.csv` | Align video timing to neural data |
+| **2. Join Views** | Eye videos | `stitched.mp4` | Combine all camera views into one video |
+| **3. Tracker** | `stitched.mp4` + `stitched_framewise_ts.csv` | Tracked video + logs (+ summary) | Detect and log rat behavior with precise neural timing |
 
-**Steps performed:**
-1. Run `join_views.py` for video stitching  
-2. Run `Video_LED_Sync_using_ICA.py` for LED synchronization  
-3. Run `TrackerYolov3-Colab.py` for tracking and output generation
+---
+
+### 🤎 Key Insight
+
+The **stitched video** is only *visually* synchronized—it aligns all videos by frame index, not by corrected timestamps.  
+The **Tracker** then uses `stitched_framewise_ts.csv` to assign each stitched frame its true neural-synchronized time, ensuring all behavioral logs and neural data are perfectly aligned.
+
+🟢 **In short:**  
+The *stitching* step creates a watchable multi-camera video,  
+while the *Tracker* step restores and applies the true temporal correction using the synchronization data.
+
+---
+
+### 🧬 Final Outcome
+
+At the end of the pipeline you obtain:
+- A single **stitched video** showing all camera views.  
+- A **tracked video** with the rat’s trajectory and trial information.  
+- **Logs and summaries** where every behavioral event is precisely timestamped to match the neural recordings—ready for quantitative analysis.
 
 ---
 
@@ -114,8 +120,10 @@ bash run.sh ./videos/raw ./ephys/session.rec ./output/
 | File | Description |
 |------|--------------|
 | `stitched.mp4` | Merged panoramic video from 12-camera input |
-| `sync_timestamps.csv` | Mapping between video frames and ephys timestamps |
-| `tracker_output.csv` | Rat trajectory and detection data |
+| `stitched_framewise_ts.csv` | Mapping between video frames and ephys timestamps |
+| `log_<date>_Rat<ID>.log` | Frame-by-frame detections with synchronized timestamps |
+| `<date>_Rat<ID>.mp4` | Tracked video with rat path and annotations |
+| `<date>_Rat<ID>.txt` | Optional session summary (nodes, durations, velocities) |
 
 ---
 
@@ -141,24 +149,25 @@ pip install -r requirements.txt
 ## 👥 Credits
 
 Developed under the supervision of **[Dr. Adrián Alemán Zapata](https://github.com/Aleman-Z)**  
+
 **Contributors:**
-- **Giulia Porro** — implemented the YOLOv3 tracker integration  
-- **Param Rajpura** — GPU acceleration and synchronization improvements
-- **Olivier Peron** — contributed to the electrophysiology–video synchronization testing and LED alignment validation
-- **Özge Çekirge** — assisted in ICA-based synchronization between ephys and video data
-- **Daniela Morales** — optimized Colab and FFMPEG environments  
+- **Giulia Porro** — YOLOv3 tracker integration  
+- **Param Rajpura** — GPU acceleration and synchronization improvements  
+- **Olivier Peron** — electrophysiology–video synchronization validation  
+- **Özge Çekirge** — ICA-based synchronization analysis  
+- **Daniela Morales** — Colab and FFMPEG optimization  
 - **Genzel Lab Team** — experimental data and conceptual design  
 
 ---
 
-## 🧾 License
+## 🗾 License
 
 © **Genzel Lab** — for research use only.  
 
+This folder is the compilation of 3 projects to enable users to execute the workflow in a single step.  
+Usage and Installation Document:  
+[Installation and Usage Manual – Dropbox Link](https://www.dropbox.com/scl/fi/i59wadvyigozyv650okf3/Installation-and-Usage-Manual-for-HM-Stitch-Sync-Track.docx?rlkey=q5o6ppiv1xcbkq1w2v8oodvr1&dl=0)
 
-This folder is the compilation of 3 projects to enable user to execute the workflow in single step.
-Usage and Installation Document : https://www.dropbox.com/scl/fi/i59wadvyigozyv650okf3/Installation-and-Usage-Manual-for-HM-Stitch-Sync-Track.docx?rlkey=q5o6ppiv1xcbkq1w2v8oodvr1&dl=0
+---
 
-Tracker code now uses the output of the Synchronisation generated in outpath folder to write the sync timestamps in tracker log file.
-
-The files are modified to run with relative folder paths without user intervention for each run. For debugging or visualisation, please refer to the original project folder for the python scripts or notebooks with similar names as in this project.
+📌 *The tracker now uses the output of the Synchronization module to write neural-synchronized timestamps directly into the log files, ensuring precise temporal alignment between behavior and neural events.*
