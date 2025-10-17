@@ -176,7 +176,7 @@ Developed under the supervision of **[Dr. Adrián Alemán Zapata](https://github
 
 This folder combines three modules — **Synchronization**, **Stitching**, and **Tracking** — into a single executable workflow.  
 Usage and Installation Manual:  
-[Installation and Usage Manual – Dropbox Link](https://www.dropbox.com/scl/fi/i59wadvyigozyv650okf3/Installation-and-Usage-Manual-for-HM-Stitch-Sync-Track.docx?rlkey=q5o6ppiv1xcbkq1w2v8oodvr1&dl=0)
+[Installation and Usage Manual – Dropbox Link](https://www.dropbox.com/scl/fi/wwph1cjct5o0m6cffelm3/Installation-and-Usage-Manual-for-HM-Stitch-Sync-Track.docx?rlkey=drsd7q3debt064n3khcz4tlji&st=qymj8ie4&dl=0)
 
 ---
 
