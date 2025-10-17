@@ -1,126 +1,127 @@
 # 🎮 Stitch_Sync_Track — Hexmaze Rat Project
 
-This folder integrates multi-camera video stitching, synchronization with electrophysiological recordings, and automated rat tracking for the **Hexmaze Rat** experiment.  
-The goal is to produce a **fully synchronized behavioral dataset**—where the tracked rat trajectories and events are precisely aligned with the electrophysiological recordings—enabling joint neural–behavioral analyses.
+This folder integrates **multi-camera video synchronization**, **stitching**, and **automated rat tracking** for the **Hexmaze Rat** experiment.  
+The goal is to produce a **fully synchronized behavioral dataset** — where every tracked rat position is precisely aligned to the neural recordings.
 
-While the intermediate stitched video provides a visually combined multi-camera view, the *true temporal synchronization* is achieved through the alignment data computed in the **Synchronization** stage and later applied during **Tracking**.
+Importantly, **temporal synchronization** happens *before* stitching.  
+Each camera video is aligned to the neural clock via LED–DIO regression, and these per-eye regressions are combined into a **single global timestamp series** that defines the true frame-by-frame timing of the final stitched video.
 
 ---
 
 ## 🧠 Conceptual Overview
 
-The workflow combines video and ephys data through the following stages:
+The workflow combines behavioral videos and electrophysiology data through the following stages:
 
 ```
-Multi-camera videos → Stitched video → Neural synchronization via LED/ICA + DIO regression → Tracker → Position–event dataset
+Multi-camera videos
+→ LED–DIO synchronization via ICA regression (per eye)
+→ Averaged global timestamps (stitched_framewise_ts.csv)
+→ Visual stitching of videos
+→ Tracker applies timestamps to behavioral detections
+→ Neural–behavioral dataset
 ```
-
-### Pipeline Summary
-
-1. **Video Stitching** — merges multiple camera views into one panoramic video.  
-2. **LED–DIO Synchronization** — aligns all video frames to the neural clock using LED detection and regression-based correction.  
-3. **Tracking** — extracts and timestamps the rat’s position using a YOLOv3-based GPU-accelerated tracker.  
-4. **Automated Workflow** — all steps can be executed sequentially via `run.sh`.
 
 ---
 
-## 🧬 Hex-Maze Video Processing Pipeline – Full Description
+## 🧬 Full Hex-Maze Video Processing Pipeline
 
-This pipeline converts raw multi-camera recordings of the **Hex-Maze** experiment into fully synchronized, annotated, and analyzed videos that show the rat’s position across trials, aligned precisely with the neural data.  
-It consists of three main stages: **Synchronization**, **Stitching**, and **Tracking**.
+This pipeline transforms raw multi-camera recordings of the **Hex-Maze** experiment into fully timestamped, analyzed videos that show the rat’s path across trials — all in true neural time.
+
+It consists of three main stages:  
+**1. Synchronization**, **2. Stitching**, and **3. Tracking**.
 
 ---
 
-### 🎡️ Step 1 — Synchronization (`Video_LED_Sync_using_ICA.py`)
+### 🕹️ Step 1 — Synchronization (`Video_LED_Sync_using_ICA.py`)
 
-Each eye camera records independently, and their clocks may drift slightly relative to the neural recording system.  
-The synchronization script aligns all video frames to the **neural clock** using the LED–DIO system.
+Each eye camera records independently, with its own clock that may drift slightly relative to the neural recording system.  
+This script aligns all video frames to the **neural clock** using the LED–DIO system and builds the global timestamp mapping used later.
 
 **How it works**
-1. For each eye video, it extracts a small LED crop and applies **Independent Component Analysis (ICA)** to separate red and blue LED signals.  
-2. It reads the corresponding LED control pulses from the **neural DIO (.dat)** files, which encode the ground-truth timing of the LED blinks.  
-3. It builds a **linear regression model** that maps each video’s LED timestamps to the DIO (neural) timestamps—correcting both offset and clock drift.  
-4. For all eyes, it computes an **average per-frame timestamp** (since each camera is within ~1–2 frames of the others).  
-5. It applies the regression model to this averaged timeline, converting every video frame into its **true neural-aligned time**.
+1. For each eye video, extracts a small LED region and applies **Independent Component Analysis (ICA)** to isolate the LED signal.  
+2. Reads corresponding LED control pulses from the **neural DIO (.dat)** files, which store the ground-truth timing of LED blinks.  
+3. Builds a **linear regression model** mapping each camera’s internal frame time to the DIO timestamps, correcting for offset and drift.  
+4. **Averages** the corrected per-eye timelines to produce a **global framewise timestamp series** shared across all cameras.  
+5. Outputs a single CSV (`stitched_framewise_ts.csv`) that defines the corrected, neural-aligned time for every frame in the stitched video.
 
 **Output**
-- 🗂️ `stitched_framewise_ts.csv` — a table linking each frame index in the stitched video to its corrected, neural-synchronized timestamp.  
-  This file encodes the *true temporal alignment* between the behavioral videos and the electrophysiological data and is used directly by the tracker.
+- 🗂️ `stitched_framewise_ts.csv` — table indexed by frame number with the column `"Corrected Time Stamp"`.  
+  Each entry represents the **true neural-aligned timestamp** of that stitched frame, averaged across all eye regressions.
 
-**In short:**  
-The synchronization step translates frame indices into real neural time using ICA-based LED detection, DIO alignment, and linear regression—producing the master timestamp file used downstream.
+> ✅ This file is the core synchronization reference for all downstream steps.  
+> ❌ It does *not* visually synchronize or merge the videos — it only defines time alignment.
 
 ---
 
 ### 🎥 Step 2 — Join Views (`join_views.py`)
 
-The maze is recorded from multiple eye cameras (typically 12).  
-This script visually combines all the videos into a single grid layout for easy viewing.
+The maze is recorded by multiple fixed cameras (typically 12).  
+This script visually merges them into a single panoramic view for manual inspection and automated tracking.
 
 **How it works**
-1. Finds all the eye videos in a folder.  
-2. Aligns frame 0 across all videos (all start together).  
-3. Ends at the shortest video’s length, ensuring matching time windows.  
-4. Optionally crops or flips the views for consistent orientation.  
-5. Creates a new video showing all camera views side-by-side.
+1. Finds all individual eye videos in the target folder.  
+2. Aligns their **first frame (frame 0)** to start simultaneously.  
+3. Ends the output at the shortest input video duration.  
+4. Optionally crops or flips videos to maintain consistent maze orientation.  
+5. Uses **FFmpeg overlay filters** to tile the videos in a 2×6 grid and generate one stitched video.
 
 **Output**
-- 🎮️ `stitched.mp4` — a single multi-view video combining all camera angles.
+- 🎮 `stitched.mp4` — a single panoramic video combining all eye views.
 
-> ⚠️ The stitching process does **not** use timestamps; it assumes all videos are approximately aligned.  
-> Minor 1–2 frame offsets between cameras remain but are corrected downstream using the synchronization file.
+> ⚠️ This stage performs **no temporal synchronization** — it simply places all camera videos side by side for visual convenience.  
+> The precise neural timing is recovered later via the `stitched_framewise_ts.csv` file from Step 1.
 
 ---
 
-### 🐀 Step 3 — Tracker (`tracker.py`)
+### 🐀 Step 3 — Tracking (`TrackerYolov3-Colab.py`)
 
-The tracker performs automated detection and tracking of the rat’s movements across the maze using a trained **YOLOv3 ONNX** network.  
-It also associates every detected frame with its **true neural-synchronized timestamp**.
+The tracker performs automatic rat detection and tracking on the **stitched video** using a trained **YOLOv3 ONNX** network.  
+Each frame processed by the tracker is then assigned its **true neural timestamp** using the global timestamp mapping from synchronization.
 
 **How it works**
-1. Loads the stitched video (`stitched.mp4`) and the synchronization table (`stitched_framewise_ts.csv`).  
-2. Detects rat head, rat body, and researcher positions frame by frame.  
-3. Tracks the rat’s trajectory across maze nodes using `node_list_new.csv`.  
-4. For each frame, looks up the **neural-aligned timestamp** from the CSV to tag detections in neural time.  
-5. Logs every detection and event using corrected timestamps for full alignment with electrophysiology.  
-6. Annotates and saves the tracked video with colored paths, node labels, and trial information.
+1. Loads both `stitched.mp4` and `stitched_framewise_ts.csv`.  
+2. Detects the rat’s head, body, and the experimenter using YOLOv3 inference.  
+3. Tracks the rat’s movement across maze nodes (`node_list_new.csv`).  
+4. For each processed frame, retrieves the corresponding `"Corrected Time Stamp"` from the CSV — the **global averaged timestamp** computed during synchronization.  
+5. Logs detections and behavioral events using these neural-aligned timestamps.  
+6. Annotates and saves the stitched video with trajectories, node IDs, and trial information.
 
 **Outputs**
 - 🐭 `<date>_Rat<ID>.mp4` — tracked video with path annotations.  
-- 🔜 `log_<date>_Rat<ID>.log` — detailed frame-by-frame detections (including neural-synchronized timestamps).  
-- 📊 *(optional)* `<date>_Rat<ID>.txt` — session summary (nodes, durations, velocities).
+- 🖜 `log_<date>_Rat<ID>.log` — detailed frame-by-frame detections, each labeled with the neural-synchronized timestamp.  
+- 📈 *(optional)* `<date>_Rat<ID>.txt` — session summary (nodes, durations, velocities, etc.).
 
 ---
 
-### 🧠 Putting It All Together
+### 🧩 Putting It All Together
 
 | Stage | Inputs | Outputs | Purpose |
 |:------|:--------|:---------|:---------|
-| **1. Synchronization** | Eye videos + DIO signals | `stitched_framewise_ts.csv` | Compute neural-aligned timestamps per frame |
-| **2. Join Views** | Eye videos | `stitched.mp4` | Create a multi-camera visual representation |
-| **3. Tracker** | `stitched.mp4` + `stitched_framewise_ts.csv` | Tracked video + logs (+ summary) | Detect and log rat behavior with precise neural timing |
+| **1. Synchronization** | Eye videos + DIO signals | `stitched_framewise_ts.csv` | Compute neural-aligned timestamps for each frame (averaged across eyes) |
+| **2. Join Views** | Eye videos | `stitched.mp4` | Merge all cameras into a visual grid (no timing correction) |
+| **3. Tracker** | `stitched.mp4` + `stitched_framewise_ts.csv` | Tracked video + logs | Detect and log rat behavior in true neural time |
 
 ---
 
-### 🦿 Key Insight
+### 🧤 Key Insight
 
-The **stitched video** is only *visually aligned* (frame-based).  
-The **true synchronization** is numerical and comes from `stitched_framewise_ts.csv`, which maps every frame to its corresponding neural time.  
-
-When the tracker runs, it **reads that timestamp for each frame** to recover the real experimental timing—effectively fusing behavioral and neural data.
+The **synchronization step** defines the true neural timeline using averaged per-eye LED–DIO regressions.  
+The **stitched video** is only a visual montage — it has no inherent timing correction.  
+Finally, the **tracker** fuses both by applying the neural-aligned timestamps from `stitched_framewise_ts.csv` to every frame and event.
 
 🟢 **In short:**  
-The *Stitching* step creates an easy-to-watch panoramic video,  
-while the *Synchronization* and *Tracking* steps together restore and apply the precise temporal alignment to produce a truly synchronized behavioral dataset.
+- Synchronization = builds the global neural timeline.  
+- Stitching = creates the visual grid.  
+- Tracking = overlays rat detections and applies neural timestamps.
 
 ---
 
-### 🤜 Final Outcome
+### 🧬 Final Outcome
 
 At the end of the pipeline you obtain:
 - A single **stitched video** showing all camera views.  
-- A **tracked video** with the rat’s trajectory and trial information.  
-- **Logs and summaries** where every behavioral event is precisely timestamped to match the neural recordings—ready for quantitative analysis.
+- A **tracked video** with the rat’s trajectory and trial annotations.  
+- **Logs and summaries** where every event is timestamped in neural time, enabling precise behavioral–electrophysiological analysis.
 
 ---
 
@@ -128,8 +129,8 @@ At the end of the pipeline you obtain:
 
 | File | Description |
 |------|--------------|
-| `stitched.mp4` | Merged panoramic video from 12-camera input |
-| `stitched_framewise_ts.csv` | Mapping between each stitched frame and neural-aligned time |
+| `stitched.mp4` | Multi-camera panoramic video (visual only) |
+| `stitched_framewise_ts.csv` | Global frame-to-neural timestamp table |
 | `log_<date>_Rat<ID>.log` | Frame-by-frame detections with synchronized timestamps |
 | `<date>_Rat<ID>.mp4` | Tracked video with annotated rat path |
 | `<date>_Rat<ID>.txt` | Optional session summary (nodes, durations, velocities) |
@@ -169,14 +170,15 @@ Developed under the supervision of **[Dr. Adrián Alemán Zapata](https://github
 
 ---
 
-## 🗾 License
+## 🟒 License
 
 © **Genzel Lab** — for research use only.  
 
-This folder combines three modules (Stitching, Synchronization, and Tracking) into a single executable workflow.  
+This folder combines three modules — **Synchronization**, **Stitching**, and **Tracking** — into a single executable workflow.  
 Usage and Installation Manual:  
 [Installation and Usage Manual – Dropbox Link](https://www.dropbox.com/scl/fi/i59wadvyigozyv650okf3/Installation-and-Usage-Manual-for-HM-Stitch-Sync-Track.docx?rlkey=q5o6ppiv1xcbkq1w2v8oodvr1&dl=0)
 
 ---
 
-📌 *The tracker directly uses the synchronized timestamps (`stitched_framewise_ts.csv`) to log rat positions in neural time, ensuring perfect alignment between behavioral and electrophysiological events.*
+📌 *Each frame in the stitched video inherits its timestamp from the averaged neural-aligned series (`stitched_framewise_ts.csv`), ensuring that all tracked rat positions are expressed in true experimental time.*
+
