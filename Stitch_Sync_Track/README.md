@@ -169,7 +169,8 @@ Developed under the supervision of **[Dr. Adrián Alemán Zapata](https://github
 - **Genzel Lab Team** — experimental data and conceptual design  
 
 ---
-
+#### For a detailed explanation of the synchronization architecture and its implementation, see [SYNCHRONIZATION_DETAILS.md](./SYNCHRONIZATION_DETAILS.md).
+---
 ## 🟒 License
 
 © **Genzel Lab** — for research use only.  
