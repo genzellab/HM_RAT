@@ -4,7 +4,7 @@ This folder integrates **multi-camera video synchronization**, **stitching**, an
 The goal is to produce a **fully synchronized behavioral dataset** — where every tracked rat position is precisely aligned to the neural recordings.
 
 Importantly, **temporal synchronization** happens *before* stitching.  
-Each camera video is aligned to the neural clock via LED–DIO regression, and these per-eye regressions are combined into a **single global timestamp series** that defines the true frame-by-frame timing of the final stitched video.
+Each camera video is aligned to the neural clock via **two-stage regression** (GPU→CPU and CPU→DIO), and these per-eye regressions are combined into a **single global timestamp series** that defines the true frame-by-frame timing of the final stitched video.
 
 ---
 
@@ -14,7 +14,7 @@ The workflow combines behavioral videos and electrophysiology data through the f
 
 ```
 Multi-camera videos
-→ LED–DIO synchronization via ICA regression (per eye)
+→ Two-stage LED–DIO synchronization via ICA regression (per eye)
 → Averaged global timestamps (stitched_framewise_ts.csv)
 → Visual stitching of videos
 → Tracker applies timestamps to behavioral detections
@@ -40,12 +40,16 @@ This script aligns all video frames to the **neural clock** using the LED–DIO 
 **How it works**
 1. For each eye video, extracts a small LED region and applies **Independent Component Analysis (ICA)** to isolate the LED signal.  
 2. Reads corresponding LED control pulses from the **neural DIO (.dat)** files, which store the ground-truth timing of LED blinks.  
-3. Builds a **linear regression model** mapping each camera’s internal frame time to the DIO timestamps, correcting for offset and drift.  
-4. **Averages** the corrected per-eye timelines to produce a **global framewise timestamp series** shared across all cameras.  
-5. Outputs a single CSV (`stitched_framewise_ts.csv`) that defines the corrected, neural-aligned time for every frame in the stitched video.
+3. Performs **two sequential linear regressions**:
+   - **GPU → CPU regression:** corrects timestamp lag between frame capture (GPU) and metadata timestamp (CPU).  
+     Implemented in `pred_cpu_ts_from_gpu_ts()`, this removes a consistent 10–30 ms delay caused by transfer latency inside the Raspberry Pi.  
+   - **CPU → DIO regression:** maps corrected frame timestamps to neural DIO LED pulse times, aligning each frame to the neural clock.  
+     Implemented in `pred_dio_ts_from_ica_ts_and_verify()`, it uses ICA-derived LED timestamps to compute per-eye neural-aligned frame times.  
+4. **Averages** the per-eye regressions to produce a **single global framewise timestamp** shared by all cameras, ensuring every stitched frame has a unified neural-time reference.  
+5. Outputs a single CSV (`stitched_framewise_ts.csv`) that defines the **corrected neural-aligned time** for every frame in the stitched video.
 
 **Output**
-- 🗂️ `stitched_framewise_ts.csv` — table indexed by frame number with the column `"Corrected Time Stamp"`.  
+- 🗂️ `stitched_framewise_ts.csv` — table indexed by frame number with the column "Corrected Time Stamp".  
   Each entry represents the **true neural-aligned timestamp** of that stitched frame, averaged across all eye regressions.
 
 > ✅ This file is the core synchronization reference for all downstream steps.  
@@ -82,7 +86,7 @@ Each frame processed by the tracker is then assigned its **true neural timestamp
 1. Loads both `stitched.mp4` and `stitched_framewise_ts.csv`.  
 2. Detects the rat’s head, body, and the experimenter using YOLOv3 inference.  
 3. Tracks the rat’s movement across maze nodes (`node_list_new.csv`).  
-4. For each processed frame, retrieves the corresponding `"Corrected Time Stamp"` from the CSV — the **global averaged timestamp** computed during synchronization.  
+4. For each processed frame, retrieves the corresponding "Corrected Time Stamp" from the CSV — the **global averaged timestamp** computed during synchronization.  
 5. Logs detections and behavioral events using these neural-aligned timestamps.  
 6. Annotates and saves the stitched video with trajectories, node IDs, and trial information.
 
@@ -105,7 +109,7 @@ Each frame processed by the tracker is then assigned its **true neural timestamp
 
 ### 🧤 Key Insight
 
-The **synchronization step** defines the true neural timeline using averaged per-eye LED–DIO regressions.  
+The **synchronization step** defines the true neural timeline using two-stage regression (GPU→CPU and CPU→DIO) and averaging across eyes.  
 The **stitched video** is only a visual montage — it has no inherent timing correction.  
 Finally, the **tracker** fuses both by applying the neural-aligned timestamps from `stitched_framewise_ts.csv` to every frame and event.
 
@@ -163,14 +167,15 @@ Developed under the supervision of **[Dr. Adrián Alemán Zapata](https://github
 **Contributors:**
 - **Giulia Porro** — YOLOv3 tracker integration  
 - **Param Rajpura** — GPU acceleration and synchronization implementation (ICA–DIO regression)  
-- **Olivier Peron** — electrophysiology–video synchronization validation  
-- **Özge Çekirge** — ICA-based synchronization analysis  
+- **Olivier Peron** — GPU→CPU regression model and electrophysiology–video synchronization validation  
+- **Özge Çekirge** — ICA-based LED–DIO synchronization and drift analysis  
 - **Daniela Morales** — Colab and FFMPEG optimization  
 - **Genzel Lab Team** — experimental data and conceptual design  
 
 ---
-#### For a detailed explanation of the synchronization architecture and its implementation, see [SYNCHRONIZATION_DETAILS.md](synchronization_details.md).
+#### For a detailed explanation of the synchronization architecture and its implementation, see [SYNCHRONIZATION_DETAILS.md](SYNCHRONIZATION_DETAILS.md).
 ---
+
 ## 🟒 License
 
 © **Genzel Lab** — for research use only.  
